@@ -1,0 +1,234 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Profil utilisateur unique (single user app)
+model UserProfile {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Données physiologiques
+  age          Int
+  height       Int // en cm
+  sex          Sex
+  activityLevel ActivityLevel @default(SEDENTARY)
+
+  // Objectifs
+  currentWeight  Float // en kg
+  targetWeight   Float // en kg
+  targetDate     DateTime
+  weeklyGoal     Float @default(0.5) // perte hebdomadaire visée en kg
+
+  // Relations
+  weightEntries  WeightEntry[]
+  activities     Activity[]
+  foodEntries    FoodEntry[]
+  dailySummaries DailySummary[]
+  visionBoards   VisionBoard[]
+
+  @@index([updatedAt])
+}
+
+// Historique du poids
+model WeightEntry {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  weight    Float // en kg
+  date      DateTime @db.Date
+  notes     String?
+
+  userId    String
+  user      UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date(sort: Desc)])
+}
+
+// Sessions d'activité physique
+model Activity {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  type        ActivityType
+  name        String // ex: "Course à pied", "Yoga", "Marche"
+  duration    Int? // en minutes (optionnel si calories manuelles)
+  intensity   Intensity?
+  caloriesBurned Float
+
+  // Nouvelles options de saisie
+  steps          Int? // Nombre de pas (optionnel)
+  manualCalories Float? // Calories saisies manuellement (optionnel)
+
+  date        DateTime @db.Date
+  notes       String?
+
+  userId    String
+  user      UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date(sort: Desc)])
+}
+
+// Entrées alimentaires (journal)
+model FoodEntry {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Données Open Food Facts
+  productName    String
+  productBarcode String?
+  brandName      String?
+
+  // Valeurs nutritionnelles (pour 100g/100ml)
+  calories       Float // kcal
+  proteins       Float? // g
+  carbs          Float? // g
+  fats           Float? // g
+  fibers         Float? // g
+
+  // Quantité consommée
+  quantity       Float // en grammes ou ml
+  servingSize    Float @default(100) // base de calcul (généralement 100)
+
+  // Métadonnées
+  date           DateTime @db.Date
+  mealType       MealType
+  notes          String?
+
+  userId    String
+  user      UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date(sort: Desc)])
+  @@index([productBarcode])
+}
+
+// Résumé quotidien (agrégations)
+model DailySummary {
+  id        String   @id @default(cuid())
+  date      DateTime @unique @db.Date
+
+  // Calories
+  bmr               Float // métabolisme de base
+  tdee              Float // dépense totale estimée
+  caloriesConsumed  Float // alimentaire
+  caloriesBurned    Float // activités
+  caloriesNet       Float // consommé - brûlé
+
+  // Poids
+  weight            Float?
+
+  // Activités
+  activitiesCount   Int @default(0)
+  totalExerciseTime Int @default(0) // en minutes
+
+  // Alimentation
+  mealsCount        Int @default(0)
+
+  // Calculé
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId    String
+  user      UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date(sort: Desc)])
+}
+
+// Enums
+enum Sex {
+  MALE
+  FEMALE
+}
+
+enum ActivityLevel {
+  SEDENTARY      // 1.2 - peu ou pas d'exercice
+  LIGHT          // 1.375 - exercice léger 1-3j/semaine
+  MODERATE       // 1.55 - exercice modéré 3-5j/semaine
+  ACTIVE         // 1.725 - exercice intense 6-7j/semaine
+  VERY_ACTIVE    // 1.9 - exercice très intense, travail physique
+}
+
+enum ActivityType {
+  CARDIO
+  STRENGTH
+  FLEXIBILITY
+  SPORTS
+  DAILY_ACTIVITY
+}
+
+enum Intensity {
+  LOW
+  MODERATE
+  HIGH
+  VERY_HIGH
+}
+
+enum MealType {
+  BREAKFAST
+  MORNING_SNACK
+  LUNCH
+  AFTERNOON_SNACK
+  DINNER
+  EVENING_SNACK
+}
+
+enum VisionBoardItemType {
+  IMAGE
+  AFFIRMATION
+}
+
+// ============= VISION BOARD =============
+
+// Vision Board - Tableau de visualisation
+model VisionBoard {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  title       String
+  description String?
+  coverImage  String?  // URL de couverture
+  isDefault   Boolean  @default(false)
+
+  // Relations
+  items       VisionBoardItem[]
+  userId      String
+  user        UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt(sort: Desc)])
+}
+
+// Élément d'un vision board
+model VisionBoardItem {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  type        VisionBoardItemType
+
+  // Pour IMAGE
+  imageUrl    String?
+  imageCredit String?  // Attribution Unsplash
+
+  // Pour AFFIRMATION
+  text        String?
+
+  // Commun
+  position    Int      @default(0)
+  color       String?  // Couleur de fond (hex)
+
+  // Relations
+  boardId     String
+  board       VisionBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@index([boardId, position])
+}

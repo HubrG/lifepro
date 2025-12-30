@@ -10,6 +10,7 @@ import { WeightEntriesList } from "@/components/weight/weight-entries-list";
 import { CalorieCounter } from "@/components/weight/calorie-counter";
 import { CalorieBalanceChart } from "@/components/weight/calorie-balance-chart";
 import { BMIChart } from "@/components/weight/bmi-chart";
+import { CaloricWeightChart } from "@/components/weight/caloric-weight-chart";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -171,6 +172,9 @@ export default function WeightPage() {
 
       {/* Calorie Counter */}
       <CalorieCounter />
+
+      {/* Caloric Weight Chart - Pie Chart */}
+      <CaloricWeightChart />
 
       {/* Weight Chart */}
       <WeightChart />

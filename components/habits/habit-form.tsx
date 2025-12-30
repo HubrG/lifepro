@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus } from "lucide-react";
-import { HabitFrequencyType } from "@prisma/client";
+import { Plus, TrendingUp, TrendingDown } from "lucide-react";
+import { HabitFrequencyType, HabitType } from "@prisma/client";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -50,9 +50,14 @@ interface HabitFormProps {
   trigger?: React.ReactNode;
 }
 
-const EMOJI_OPTIONS = [
+const GOOD_HABIT_EMOJIS = [
   "🏃", "💪", "📚", "🧘", "💧", "🥗", "😴", "✍️",
-  "🎯", "💰", "🧹", "📱", "🎨", "🎸", "🌱", "❤️",
+  "🎯", "💰", "🧹", "🎨", "🎸", "🌱", "❤️", "🧠",
+];
+
+const BAD_HABIT_EMOJIS = [
+  "🚬", "🍺", "🍷", "🌿", "🍕", "🍫", "☕", "📵",
+  "🔞", "💋", "🎰", "🎮", "💊", "🛒", "📱", "🍩",
 ];
 
 export function HabitForm({ habit, open: controlledOpen, onOpenChange, trigger }: HabitFormProps) {
@@ -71,6 +76,7 @@ export function HabitForm({ habit, open: controlledOpen, onOpenChange, trigger }
       description: "",
       icon: "",
       color: HABIT_COLORS[0],
+      habitType: "GOOD",
       frequencyType: "DAILY",
       frequencyValue: 3,
       frequencyDays: "",
@@ -85,6 +91,7 @@ export function HabitForm({ habit, open: controlledOpen, onOpenChange, trigger }
         description: habit.description || "",
         icon: habit.icon || "",
         color: habit.color || HABIT_COLORS[0],
+        habitType: habit.habitType,
         frequencyType: habit.frequencyType,
         frequencyValue: habit.frequencyValue ?? 3,
         frequencyDays: habit.frequencyDays || "",
@@ -95,6 +102,7 @@ export function HabitForm({ habit, open: controlledOpen, onOpenChange, trigger }
         description: "",
         icon: "",
         color: HABIT_COLORS[0],
+        habitType: "GOOD",
         frequencyType: "DAILY",
         frequencyValue: 3,
         frequencyDays: "",
@@ -103,6 +111,8 @@ export function HabitForm({ habit, open: controlledOpen, onOpenChange, trigger }
   }, [habit, open, form]);
 
   const frequencyType = form.watch("frequencyType");
+  const habitType = form.watch("habitType");
+  const emojiOptions = habitType === "BAD" ? BAD_HABIT_EMOJIS : GOOD_HABIT_EMOJIS;
 
   const onSubmit = async (data: HabitFormInput) => {
     try {
@@ -144,6 +154,50 @@ export function HabitForm({ habit, open: controlledOpen, onOpenChange, trigger }
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Type d'habitude */}
+            <FormField
+              control={form.control}
+              name="habitType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Type d'habitude</FormLabel>
+                  <FormControl>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => field.onChange("GOOD")}
+                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border-2 transition-all ${
+                          field.value === "GOOD"
+                            ? "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400"
+                            : "border-muted hover:border-muted-foreground/30"
+                        }`}
+                      >
+                        <TrendingUp className="h-4 w-4" />
+                        <span className="font-medium">Bonne habitude</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => field.onChange("BAD")}
+                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border-2 transition-all ${
+                          field.value === "BAD"
+                            ? "border-red-500 bg-red-500/10 text-red-700 dark:text-red-400"
+                            : "border-muted hover:border-muted-foreground/30"
+                        }`}
+                      >
+                        <TrendingDown className="h-4 w-4" />
+                        <span className="font-medium">Mauvaise habitude</span>
+                      </button>
+                    </div>
+                  </FormControl>
+                  <FormDescription>
+                    {field.value === "GOOD"
+                      ? "Habitude à développer (sport, lecture...)"
+                      : "Habitude à arrêter (alcool, cigarette...)"}
+                  </FormDescription>
+                </FormItem>
+              )}
+            />
+
             {/* Nom */}
             <FormField
               control={form.control}
@@ -187,7 +241,7 @@ export function HabitForm({ habit, open: controlledOpen, onOpenChange, trigger }
                   <FormLabel>Icône</FormLabel>
                   <FormControl>
                     <div className="flex flex-wrap gap-2">
-                      {EMOJI_OPTIONS.map((emoji) => (
+                      {emojiOptions.map((emoji) => (
                         <button
                           key={emoji}
                           type="button"

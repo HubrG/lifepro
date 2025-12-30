@@ -27,11 +27,21 @@ export async function addWeightEntry(data: WeightEntryInput) {
       throw new Error("Profil utilisateur non trouvé");
     }
 
+    // Corriger la date pour éviter les problèmes de timezone
+    // On utilise UTC à midi pour éviter les décalages
+    const inputDate = validatedData.date;
+    const correctedDate = new Date(Date.UTC(
+      inputDate.getFullYear(),
+      inputDate.getMonth(),
+      inputDate.getDate(),
+      12, 0, 0, 0
+    ));
+
     // Vérifier qu'il n'existe pas déjà une entrée pour cette date
     const existingEntry = await prisma.weightEntry.findFirst({
       where: {
         userId: profile.id,
-        date: validatedData.date,
+        date: correctedDate,
       },
     });
 
@@ -43,7 +53,7 @@ export async function addWeightEntry(data: WeightEntryInput) {
     const weightEntry = await prisma.weightEntry.create({
       data: {
         weight: validatedData.weight,
-        date: validatedData.date,
+        date: correctedDate,
         notes: validatedData.notes,
         userId: profile.id,
       },

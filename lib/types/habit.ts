@@ -1,7 +1,7 @@
-import type { Habit, HabitLog, HabitFrequencyType } from "@prisma/client";
+import type { Habit, HabitLog, HabitFrequencyType, HabitType } from "@prisma/client";
 
 // Re-export pour faciliter les imports
-export type { Habit, HabitLog, HabitFrequencyType };
+export type { Habit, HabitLog, HabitFrequencyType, HabitType };
 
 // Habitude avec ses logs
 export type HabitWithLogs = Habit & {

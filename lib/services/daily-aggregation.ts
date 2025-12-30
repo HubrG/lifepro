@@ -1,13 +1,28 @@
 import prisma from "@/lib/db";
-import { startOfDay, endOfDay } from "date-fns";
 import { calculateBMR, calculateTDEE } from "./metabolic-calculations";
+
+/**
+ * Crée une plage de dates UTC pour un jour donné
+ * Évite les problèmes de timezone avec date-fns
+ */
+function getUTCDayRange(date: Date) {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const day = date.getDate();
+
+  // Début du jour en UTC (00:00:00)
+  const dayStart = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+  // Fin du jour en UTC (23:59:59.999)
+  const dayEnd = new Date(Date.UTC(year, month, day, 23, 59, 59, 999));
+
+  return { dayStart, dayEnd };
+}
 
 /**
  * Agrège les données d'une journée pour calculer la balance calorique
  */
 export async function aggregateDailyData(date: Date) {
-  const dayStart = startOfDay(date);
-  const dayEnd = endOfDay(date);
+  const { dayStart, dayEnd } = getUTCDayRange(date);
 
   // Récupérer le profil utilisateur pour les calculs métaboliques
   const profile = await prisma.userProfile.findFirst();
@@ -92,8 +107,9 @@ export async function aggregateDailyData(date: Date) {
     return total + (isNaN(burned) ? 0 : burned);
   }, 0);
 
-  // Total des calories brûlées = TDEE + activités
-  const totalCaloriesBurned = tdee + caloriesBurnedFromActivities;
+  // Total des calories brûlées = BMR (réel) + activités enregistrées (réel)
+  // On n'utilise PAS le TDEE car le multiplicateur d'activité est estimé/supposé
+  const totalCaloriesBurned = bmr + caloriesBurnedFromActivities;
 
   // Balance calorique = consommé - brûlé
   const calorieBalance = caloriesConsumed - totalCaloriesBurned;

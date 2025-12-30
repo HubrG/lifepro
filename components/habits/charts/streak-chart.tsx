@@ -2,38 +2,46 @@
 
 import { useMemo } from "react";
 import {
-  AreaChart,
-  Area,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  Legend,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useHabits, useAllHabitsStats } from "@/lib/queries/use-habit";
-import { Flame } from "lucide-react";
+import { Flame, Ban } from "lucide-react";
+
+interface ChartDataPoint {
+  date: string;
+  dateLabel: string;
+  [habitId: string]: number | string; // Dynamic keys for each habit
+}
+
+interface BestHabitInfo {
+  name: string;
+  streak: number;
+  color: string;
+  isBad: boolean;
+}
 
 export function StreakChart() {
   const { data: habits } = useHabits();
   const { data: allStats } = useAllHabitsStats();
 
-  interface BestHabitInfo {
-    name: string;
-    streak: number;
-    color: string;
-  }
-
-  const { chartData, bestHabit } = useMemo(() => {
-    if (!habits || !allStats) {
-      return { chartData: [], bestHabit: null as BestHabitInfo | null };
+  const { chartData, habitsList, bestHabit } = useMemo(() => {
+    if (!habits || habits.length === 0) {
+      return { chartData: [], habitsList: [], bestHabit: null as BestHabitInfo | null };
     }
 
-    // Calculer les streaks totaux par jour sur les 30 derniers jours
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const data: { date: string; dateLabel: string; streak: number }[] = [];
+    const data: ChartDataPoint[] = [];
 
-    for (let i = 29; i >= 0; i--) {
+    // Générer les données pour les 14 derniers jours
+    for (let i = 13; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split("T")[0];
@@ -42,75 +50,100 @@ export function StreakChart() {
         month: "short",
       });
 
-      // Calculer combien d'habitudes ont été complétées ce jour
-      let completed = 0;
-      habits.forEach((habit) => {
-        const log = habit.logs.find((l) => {
-          const d = new Date(l.date);
-          const logDateStr = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
-          return logDateStr === dateStr;
-        });
-        if (log) completed++;
-      });
-
-      data.push({
+      const point: ChartDataPoint = {
         date: dateStr,
         dateLabel,
-        streak: completed,
+      };
+
+      // Pour chaque habitude, calculer le streak cumulé jusqu'à ce jour
+      habits.forEach((habit) => {
+        let streakCount = 0;
+
+        // Compter les jours consécutifs complétés jusqu'à cette date
+        for (let j = 0; j <= 13 - i; j++) {
+          const checkDate = new Date(today);
+          checkDate.setDate(checkDate.getDate() - i - j);
+          const checkDateStr = checkDate.toISOString().split("T")[0];
+
+          const log = habit.logs.find((l) => {
+            const d = new Date(l.date);
+            const logDateStr = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+            return logDateStr === checkDateStr;
+          });
+
+          if (log) {
+            streakCount++;
+          } else {
+            break; // Streak interrompu
+          }
+        }
+
+        point[habit.id] = streakCount;
+      });
+
+      data.push(point);
+    }
+
+    // Liste des habitudes pour les lignes
+    const habitsInfo = habits.map((h) => ({
+      id: h.id,
+      name: h.name,
+      color: h.color || "#22c55e",
+      isBad: h.habitType === "BAD",
+    }));
+
+    // Trouver la meilleure habitude (plus long streak actuel)
+    let bestHabitData: BestHabitInfo | null = null;
+    if (allStats) {
+      habits.forEach((habit) => {
+        const stats = allStats[habit.id];
+        if (stats) {
+          if (!bestHabitData || stats.currentStreak > bestHabitData.streak) {
+            bestHabitData = {
+              name: habit.name,
+              streak: stats.currentStreak,
+              color: habit.color || "#22c55e",
+              isBad: habit.habitType === "BAD",
+            };
+          }
+        }
       });
     }
 
-    // Trouver la meilleure habitude (plus long streak)
-    let bestHabitData: BestHabitInfo | null = null;
-
-    habits.forEach((habit) => {
-      const stats = allStats[habit.id];
-      if (stats) {
-        if (!bestHabitData || stats.longestStreak > bestHabitData.streak) {
-          bestHabitData = {
-            name: habit.name,
-            streak: stats.longestStreak,
-            color: habit.color || "#22c55e",
-          };
-        }
-      }
-    });
-
     return {
       chartData: data,
+      habitsList: habitsInfo,
       bestHabit: bestHabitData,
     };
   }, [habits, allStats]);
 
-  if (chartData.length === 0) {
+  if (chartData.length === 0 || habitsList.length === 0) {
     return null;
   }
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-base">Activité quotidienne</CardTitle>
-        {bestHabit && (
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <Flame className="h-4 w-4 text-orange-500" />
-            <span>
-              Meilleur streak: {bestHabit.name} ({bestHabit.streak}j)
+        <CardTitle className="text-base">Streaks par habitude</CardTitle>
+        {bestHabit && bestHabit.streak > 0 && (
+          <div className={`flex items-center gap-1 text-sm ${bestHabit.isBad ? "text-green-600" : "text-orange-500"}`}>
+            {bestHabit.isBad ? (
+              <Ban className="h-4 w-4" />
+            ) : (
+              <Flame className="h-4 w-4" />
+            )}
+            <span className="text-muted-foreground">
+              {bestHabit.name}: {bestHabit.streak}j{bestHabit.isBad ? " clean" : ""}
             </span>
           </div>
         )}
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={200}>
-          <AreaChart
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart
             data={chartData}
             margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
           >
-            <defs>
-              <linearGradient id="colorStreak" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-              </linearGradient>
-            </defs>
             <XAxis
               dataKey="dateLabel"
               fontSize={10}
@@ -129,21 +162,36 @@ export function StreakChart() {
                 backgroundColor: "hsl(var(--card))",
                 border: "1px solid hsl(var(--border))",
                 borderRadius: "6px",
+                fontSize: "12px",
               }}
-              formatter={(value: number) => [
-                `${value} habitude${value > 1 ? "s" : ""}`,
-                "Complétées",
-              ]}
+              formatter={(value: number, name: string) => {
+                const habit = habitsList.find((h) => h.id === name);
+                return [
+                  `${value} jour${value > 1 ? "s" : ""}`,
+                  habit?.name || name,
+                ];
+              }}
             />
-            <Area
-              type="monotone"
-              dataKey="streak"
-              stroke="#22c55e"
-              strokeWidth={2}
-              fillOpacity={1}
-              fill="url(#colorStreak)"
+            <Legend
+              wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }}
+              formatter={(value) => {
+                const habit = habitsList.find((h) => h.id === value);
+                return habit?.name || value;
+              }}
             />
-          </AreaChart>
+            {habitsList.map((habit) => (
+              <Line
+                key={habit.id}
+                type="monotone"
+                dataKey={habit.id}
+                name={habit.id}
+                stroke={habit.color}
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4 }}
+              />
+            ))}
+          </LineChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>

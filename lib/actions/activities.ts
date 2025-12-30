@@ -53,6 +53,16 @@ export async function addActivity(data: ActivityInput) {
       throw new Error("Données insuffisantes pour calculer les calories");
     }
 
+    // Corriger la date pour éviter les problèmes de timezone
+    // On utilise UTC à midi pour éviter les décalages
+    const inputDate = validatedData.date;
+    const correctedDate = new Date(Date.UTC(
+      inputDate.getFullYear(),
+      inputDate.getMonth(),
+      inputDate.getDate(),
+      12, 0, 0, 0
+    ));
+
     // Créer l'activité
     const activity = await prisma.activity.create({
       data: {
@@ -63,7 +73,7 @@ export async function addActivity(data: ActivityInput) {
         steps: validatedData.steps || null,
         manualCalories: validatedData.manualCalories || null,
         caloriesBurned,
-        date: validatedData.date,
+        date: correctedDate,
         notes: validatedData.notes,
         userId: profile.id,
       },
@@ -101,11 +111,12 @@ export async function getActivities(options?: {
     let where = { userId: profile.id };
 
     if (date) {
-      // Filtrer par jour spécifique
-      const startOfDay = new Date(date);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
+      // Filtrer par jour spécifique (utiliser UTC pour éviter les problèmes de timezone)
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const day = date.getDate();
+      const startOfDay = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+      const endOfDay = new Date(Date.UTC(year, month, day, 23, 59, 59, 999));
 
       where = {
         ...where,

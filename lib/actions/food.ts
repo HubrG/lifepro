@@ -22,6 +22,16 @@ export async function addFoodEntry(data: FoodEntryInput) {
     // Convertir les chaînes vides en undefined
     const notes = validatedData.notes === "" ? undefined : validatedData.notes;
 
+    // Corriger la date pour éviter les problèmes de timezone
+    // On utilise UTC à midi pour éviter les décalages
+    const inputDate = validatedData.date;
+    const correctedDate = new Date(Date.UTC(
+      inputDate.getFullYear(),
+      inputDate.getMonth(),
+      inputDate.getDate(),
+      12, 0, 0, 0
+    ));
+
     // Créer l'entrée alimentaire
     const foodEntry = await prisma.foodEntry.create({
       data: {
@@ -35,7 +45,7 @@ export async function addFoodEntry(data: FoodEntryInput) {
         fibers: validatedData.fibers,
         quantity: validatedData.quantity,
         servingSize: validatedData.servingSize,
-        date: validatedData.date,
+        date: correctedDate,
         mealType: validatedData.mealType,
         notes,
         userId: profile.id,
@@ -74,11 +84,12 @@ export async function getFoodEntries(options?: {
     let where = { userId: profile.id };
 
     if (date) {
-      // Filtrer par jour spécifique
-      const startOfDay = new Date(date);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
+      // Filtrer par jour spécifique (utiliser UTC pour éviter les problèmes de timezone)
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const day = date.getDate();
+      const startOfDay = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+      const endOfDay = new Date(Date.UTC(year, month, day, 23, 59, 59, 999));
 
       where = {
         ...where,

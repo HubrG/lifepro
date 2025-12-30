@@ -237,6 +237,11 @@ model VisionBoardItem {
 
 // ============= HABIT TRACKER =============
 
+enum HabitType {
+  GOOD  // Bonne habitude à développer (sport, méditation...)
+  BAD   // Mauvaise habitude à arrêter (alcool, cigarette...)
+}
+
 enum HabitFrequencyType {
   DAILY           // Tous les jours
   TIMES_PER_WEEK  // X fois par semaine
@@ -253,6 +258,9 @@ model Habit {
   description String?
   color       String?  // Couleur pour identifier l'habitude (hex)
   icon        String?  // Emoji ou nom d'icône
+
+  // Type d'habitude
+  habitType   HabitType @default(GOOD)  // GOOD = à développer, BAD = à arrêter
 
   // Fréquence
   frequencyType  HabitFrequencyType @default(DAILY)

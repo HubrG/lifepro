@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { HabitFrequencyType } from "@prisma/client";
+import { HabitFrequencyType, HabitType } from "@prisma/client";
 
 // Liste des jours de la semaine
 export const DAYS_OF_WEEK = [
@@ -41,6 +41,7 @@ const habitBaseSchema = z.object({
     .optional()
     .or(z.literal("")),
   icon: z.string().max(50).optional().or(z.literal("")),
+  habitType: z.nativeEnum(HabitType),
   frequencyType: z.nativeEnum(HabitFrequencyType),
   frequencyValue: z.number().int().min(1).max(7).optional(),
   frequencyDays: z.string().optional(), // Format: "0,1,2,3,4" pour lun-ven

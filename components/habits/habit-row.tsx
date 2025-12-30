@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Pencil, Archive, Trash2, Flame } from "lucide-react";
+import { Pencil, Archive, Trash2, Flame, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -101,13 +101,25 @@ export function HabitRow({ habit, period, stats, onEdit }: HabitRowProps) {
   return (
     <div className="flex items-center gap-4 py-3 px-2 hover:bg-muted/50 rounded-lg transition-colors">
       {/* Nom de l'habitude */}
-      <div className="flex items-center gap-2 min-w-[180px] flex-shrink-0">
+      <div className="flex items-center gap-2 w-[280px] flex-shrink-0">
         {habit.icon && <span className="text-lg">{habit.icon}</span>}
         <span className="font-medium truncate">{habit.name}</span>
+        {habit.habitType === "BAD" && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+            À arrêter
+          </span>
+        )}
         {stats && stats.currentStreak > 0 && (
-          <span className="flex items-center gap-0.5 text-xs text-orange-500">
-            <Flame className="h-3 w-3" />
+          <span className={`flex items-center gap-0.5 text-xs ${
+            habit.habitType === "BAD" ? "text-green-600" : "text-orange-500"
+          }`}>
+            {habit.habitType === "BAD" ? (
+              <Ban className="h-3 w-3" />
+            ) : (
+              <Flame className="h-3 w-3" />
+            )}
             {stats.currentStreak}
+            {habit.habitType === "BAD" && <span className="text-[10px] ml-0.5">clean</span>}
           </span>
         )}
       </div>
@@ -123,6 +135,7 @@ export function HabitRow({ habit, period, stats, onEdit }: HabitRowProps) {
                 isToday={day.isToday}
                 isFuture={day.isFuture}
                 color={habit.color || undefined}
+                isBadHabit={habit.habitType === "BAD"}
                 onClick={() => handleToggle(day.dateStr)}
                 disabled={toggleLog.isPending}
               />

@@ -90,6 +90,7 @@ export function useCreateHabit() {
           description: newHabit.description || null,
           color: newHabit.color || null,
           icon: newHabit.icon || null,
+          habitType: newHabit.habitType || "GOOD",
           frequencyType: newHabit.frequencyType || "DAILY",
           frequencyValue: newHabit.frequencyValue ?? null,
           frequencyDays: newHabit.frequencyDays ?? null,

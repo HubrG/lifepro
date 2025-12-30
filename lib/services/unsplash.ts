@@ -10,7 +10,7 @@ export async function searchUnsplashPhotos(
   page: number = 1,
   perPage: number = 20
 ): Promise<UnsplashSearchResult> {
-  const accessKey = process.env.UNSPLASH_ACCESS_KEY;
+  const accessKey = process.env.UNPLASH_ACCESS_KEY;
 
   if (!accessKey) {
     throw new Error("UNSPLASH_ACCESS_KEY non configurée");
@@ -42,7 +42,7 @@ export async function getRandomUnsplashPhotos(
   count: number = 10,
   query?: string
 ): Promise<UnsplashPhoto[]> {
-  const accessKey = process.env.UNSPLASH_ACCESS_KEY;
+  const accessKey = process.env.UNPLASH_ACCESS_KEY;
 
   if (!accessKey) {
     throw new Error("UNSPLASH_ACCESS_KEY non configurée");
@@ -72,7 +72,7 @@ export async function getRandomUnsplashPhotos(
  * Tracker un téléchargement (requis par les guidelines Unsplash)
  */
 export async function trackUnsplashDownload(downloadLocation: string): Promise<void> {
-  const accessKey = process.env.UNSPLASH_ACCESS_KEY;
+  const accessKey = process.env.UNPLASH_ACCESS_KEY;
 
   if (!accessKey) {
     return;

@@ -34,6 +34,7 @@ model UserProfile {
   foodEntries    FoodEntry[]
   dailySummaries DailySummary[]
   visionBoards   VisionBoard[]
+  habits         Habit[]
 
   @@index([updatedAt])
 }
@@ -225,10 +226,62 @@ model VisionBoardItem {
   // Commun
   position    Int      @default(0)
   color       String?  // Couleur de fond (hex)
+  importance  Int      @default(1)  // 1=petit, 2=moyen, 3=grand (pour bento grid)
 
   // Relations
   boardId     String
   board       VisionBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
 
   @@index([boardId, position])
+}
+
+// ============= HABIT TRACKER =============
+
+enum HabitFrequencyType {
+  DAILY           // Tous les jours
+  TIMES_PER_WEEK  // X fois par semaine
+  SPECIFIC_DAYS   // Jours spécifiques (lundi, mardi, etc.)
+}
+
+// Habitude à suivre
+model Habit {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  name        String
+  description String?
+  color       String?  // Couleur pour identifier l'habitude (hex)
+  icon        String?  // Emoji ou nom d'icône
+
+  // Fréquence
+  frequencyType  HabitFrequencyType @default(DAILY)
+  frequencyValue Int?               // Pour TIMES_PER_WEEK: nombre de fois par semaine
+  frequencyDays  String?            // Pour SPECIFIC_DAYS: "0,1,2,3,4" (0=dimanche, 1=lundi...)
+
+  isArchived  Boolean @default(false)
+
+  // Relations
+  logs        HabitLog[]
+  userId      String
+  user        UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isArchived])
+}
+
+// Log d'une habitude complétée
+model HabitLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  date      DateTime @db.Date // Date du jour (sans heure)
+  completed Boolean  @default(true)
+  note      String?  // Note optionnelle
+
+  // Relations
+  habitId   String
+  habit     Habit @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, date])
+  @@index([habitId, date])
 }

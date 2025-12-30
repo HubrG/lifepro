@@ -218,6 +218,7 @@ export async function addVisionBoardItem(data: VisionBoardItemInput) {
         text: validatedData.text || null,
         position: validatedData.position ?? (maxPosition?.position ?? -1) + 1,
         color: validatedData.color || null,
+        importance: validatedData.importance ?? 1,
         boardId: validatedData.boardId,
       },
     });
@@ -252,6 +253,7 @@ export async function updateVisionBoardItem(
         text: validatedData.text,
         position: validatedData.position,
         color: validatedData.color,
+        importance: validatedData.importance,
       },
     });
 
@@ -283,6 +285,34 @@ export async function deleteVisionBoardItem(itemId: string) {
       return { success: false, error: error.message };
     }
     return { success: false, error: "Erreur lors de la suppression de l'élément" };
+  }
+}
+
+/**
+ * Mettre à jour l'importance d'un item (pour les contrôles de taille rapides)
+ */
+export async function updateVisionBoardItemImportance(
+  itemId: string,
+  importance: number
+) {
+  try {
+    if (importance < 1 || importance > 4) {
+      throw new Error("L'importance doit être entre 1 et 4");
+    }
+
+    const item = await prisma.visionBoardItem.update({
+      where: { id: itemId },
+      data: { importance },
+    });
+
+    revalidatePath(`/vision-board/${item.boardId}`);
+    return { success: true, data: item };
+  } catch (error) {
+    console.error("Error updating item importance:", error);
+    if (error instanceof Error) {
+      return { success: false, error: error.message };
+    }
+    return { success: false, error: "Erreur lors de la mise à jour de la taille" };
   }
 }
 

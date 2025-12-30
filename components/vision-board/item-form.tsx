@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Image as ImageIcon, MessageSquareQuote } from "lucide-react";
+import { Plus, Image as ImageIcon, MessageSquareQuote, Square, RectangleHorizontal, Maximize2, LayoutGrid } from "lucide-react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -36,13 +36,22 @@ interface ItemFormProps {
 const affirmationSchema = z.object({
   text: z.string().min(1, "L'affirmation est requise").max(500),
   color: z.string().optional(),
+  importance: z.number().min(1).max(4),
 });
 
 type AffirmationInput = z.infer<typeof affirmationSchema>;
 
+const importanceOptions = [
+  { value: 1, label: "Petit", icon: Square, description: "1×1" },
+  { value: 2, label: "Moyen", icon: RectangleHorizontal, description: "2×1" },
+  { value: 3, label: "Grand", icon: Maximize2, description: "2×2" },
+  { value: 4, label: "Très grand", icon: LayoutGrid, description: "3×2" },
+];
+
 export function ItemForm({ boardId }: ItemFormProps) {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"image" | "affirmation">("image");
+  const [imageImportance, setImageImportance] = useState(1);
   const addItem = useAddVisionBoardItem();
 
   const form = useForm<AffirmationInput>({
@@ -50,6 +59,7 @@ export function ItemForm({ boardId }: ItemFormProps) {
     defaultValues: {
       text: "",
       color: "",
+      importance: 1,
     },
   });
 
@@ -60,8 +70,10 @@ export function ItemForm({ boardId }: ItemFormProps) {
         type: VisionBoardItemType.IMAGE,
         imageUrl,
         imageCredit: credit,
+        importance: imageImportance,
       });
       setOpen(false);
+      setImageImportance(1);
     } catch (error) {
       console.error("Error adding image:", error);
     }
@@ -74,6 +86,7 @@ export function ItemForm({ boardId }: ItemFormProps) {
         type: VisionBoardItemType.AFFIRMATION,
         text: data.text,
         color: data.color || undefined,
+        importance: data.importance,
       });
       setOpen(false);
       form.reset();
@@ -113,7 +126,33 @@ export function ItemForm({ boardId }: ItemFormProps) {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="image" className="mt-4">
+          <TabsContent value="image" className="mt-4 space-y-4">
+            {/* Sélecteur d'importance pour les images */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Taille dans la grille</label>
+              <div className="flex gap-2">
+                {importanceOptions.map((option) => {
+                  const Icon = option.icon;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setImageImportance(option.value)}
+                      className={`flex flex-col items-center gap-1 rounded-lg border-2 p-3 transition-all ${
+                        imageImportance === option.value
+                          ? "border-primary bg-primary/5"
+                          : "border-muted hover:border-muted-foreground/30"
+                      }`}
+                    >
+                      <Icon className={`h-5 w-5 ${imageImportance === option.value ? "text-primary" : "text-muted-foreground"}`} />
+                      <span className="text-xs font-medium">{option.label}</span>
+                      <span className="text-[10px] text-muted-foreground">{option.description}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <ImagePicker onSelect={handleImageSelect} />
           </TabsContent>
 
@@ -169,6 +208,39 @@ export function ItemForm({ boardId }: ItemFormProps) {
                               style={{ backgroundColor: color }}
                             />
                           ))}
+                        </div>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="importance"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Taille dans la grille</FormLabel>
+                      <FormControl>
+                        <div className="flex gap-2">
+                          {importanceOptions.map((option) => {
+                            const Icon = option.icon;
+                            return (
+                              <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => field.onChange(option.value)}
+                                className={`flex flex-col items-center gap-1 rounded-lg border-2 p-3 transition-all ${
+                                  field.value === option.value
+                                    ? "border-primary bg-primary/5"
+                                    : "border-muted hover:border-muted-foreground/30"
+                                }`}
+                              >
+                                <Icon className={`h-5 w-5 ${field.value === option.value ? "text-primary" : "text-muted-foreground"}`} />
+                                <span className="text-xs font-medium">{option.label}</span>
+                                <span className="text-[10px] text-muted-foreground">{option.description}</span>
+                              </button>
+                            );
+                          })}
                         </div>
                       </FormControl>
                     </FormItem>

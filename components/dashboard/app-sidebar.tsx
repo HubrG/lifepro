@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, User, Utensils, Activity, Settings } from "lucide-react";
+import { Home, User, Utensils, Activity, Target, CheckSquare } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -35,6 +35,16 @@ const menuItems = [
     title: "Activités",
     url: "/weight/activities",
     icon: Activity,
+  },
+  {
+    title: "Vision Board",
+    url: "/vision-board",
+    icon: Target,
+  },
+  {
+    title: "Habitudes",
+    url: "/habits",
+    icon: CheckSquare,
   },
 ];
 

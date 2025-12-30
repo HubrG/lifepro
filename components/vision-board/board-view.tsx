@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Settings, Star } from "lucide-react";
+import { ArrowLeft, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ItemGrid } from "./item-grid";
 import { ItemForm } from "./item-form";
+import { BoardEditForm } from "./board-edit-form";
 import type { VisionBoardWithItems } from "@/lib/types/vision-board";
 
 interface BoardViewProps {
@@ -15,7 +16,7 @@ export function BoardView({ board }: BoardViewProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="mx-auto flex max-w-[1200px] items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/vision-board">
@@ -38,12 +39,13 @@ export function BoardView({ board }: BoardViewProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          <BoardEditForm board={board} />
           <ItemForm boardId={board.id} />
         </div>
       </div>
 
       {/* Stats rapides */}
-      <div className="flex gap-4 text-sm text-muted-foreground">
+      <div className="mx-auto flex max-w-[1200px] gap-4 text-sm text-muted-foreground">
         <span>
           {board.items.filter((i) => i.type === "IMAGE").length} image
           {board.items.filter((i) => i.type === "IMAGE").length > 1 ? "s" : ""}

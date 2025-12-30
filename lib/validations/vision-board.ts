@@ -38,6 +38,7 @@ export const visionBoardItemSchema = z
       .regex(/^#[0-9A-Fa-f]{6}$/, "Format de couleur invalide (ex: #FF5733)")
       .optional()
       .or(z.literal("")),
+    importance: z.number().int().min(1).max(4).default(1), // 1=petit, 2=moyen, 3=grand, 4=très grand
   })
   .refine(
     (data) => {

@@ -9,6 +9,7 @@ import {
   updateVisionBoardItem,
   deleteVisionBoardItem,
   reorderVisionBoardItems,
+  updateVisionBoardItemImportance,
 } from "@/lib/actions/vision-board";
 import type {
   VisionBoardInput,
@@ -213,6 +214,7 @@ export function useAddVisionBoardItem() {
             text: newItem.text || null,
             position: old.items.length,
             color: newItem.color || null,
+            importance: newItem.importance || 1,
             boardId: newItem.boardId,
           };
           return {
@@ -360,6 +362,49 @@ export function useReorderVisionBoardItems(boardId: string) {
         queryClient.setQueryData(["vision-board", boardId], context.previousBoard);
       }
       toast.error("Erreur lors du réordonnancement");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["vision-board", boardId] });
+    },
+  });
+}
+
+/**
+ * Hook pour mettre à jour l'importance d'un item (taille dans la grille)
+ */
+export function useUpdateVisionBoardItemImportance(boardId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ itemId, importance }: { itemId: string; importance: number }) =>
+      updateVisionBoardItemImportance(itemId, importance),
+    onMutate: async ({ itemId, importance }) => {
+      await queryClient.cancelQueries({ queryKey: ["vision-board", boardId] });
+      const previousBoard = queryClient.getQueryData<VisionBoardWithItems>([
+        "vision-board",
+        boardId,
+      ]);
+
+      queryClient.setQueryData<VisionBoardWithItems>(
+        ["vision-board", boardId],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            items: old.items.map((item) =>
+              item.id === itemId ? { ...item, importance } : item
+            ),
+          };
+        }
+      );
+
+      return { previousBoard };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousBoard) {
+        queryClient.setQueryData(["vision-board", boardId], context.previousBoard);
+      }
+      toast.error("Erreur lors du redimensionnement");
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["vision-board", boardId] });
